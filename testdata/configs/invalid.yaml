@@ -1,0 +1,9 @@
+providers:
+  broken:
+    base_url: https://example.com
+
+agents:
+  claude:
+    current: nonexistent
+  unknown_agent:
+    current: broken

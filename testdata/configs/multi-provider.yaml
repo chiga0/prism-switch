@@ -1,0 +1,19 @@
+providers:
+  openrouter:
+    api_key: ${OPENROUTER_API_KEY}
+    base_url: https://openrouter.ai/api/v1
+  anthropic:
+    api_key: ${ANTHROPIC_API_KEY}
+  google:
+    api_key: ${GEMINI_API_KEY}
+
+agents:
+  claude:
+    current: openrouter
+    model: anthropic/claude-sonnet-4
+  codex:
+    current: openrouter
+    model: o3
+  gemini:
+    current: google
+    model: gemini-2.5-pro

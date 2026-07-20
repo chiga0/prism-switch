@@ -1,0 +1,21 @@
+# Binaries
+/prism
+/dist/
+
+# Test
+*.test
+coverage.out
+coverage.html
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Go
+vendor/
