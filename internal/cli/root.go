@@ -11,15 +11,21 @@ import (
 )
 
 var cfgPath string
+var profile string
 
 var rootCmd = &cobra.Command{
 	Use:   "prism",
 	Short: "One provider config, every AI agent",
 	Long: `Prism-Switch syncs a single declarative YAML config to all your
-AI coding agents (Claude Code, Codex CLI, Gemini CLI) in one command.
+AI coding agents (Claude Code, Codex CLI, Gemini CLI, OpenCode, Qwen Code, ZCode).
 
 Define providers once with ${ENV_VAR} references — never plaintext keys.
-Then sync, switch, and audit across every agent from one place.`,
+Then sync, switch, and audit across every agent from one place.
+
+Use --profile to manage multiple provider sets:
+  prism --profile work sync       # uses ~/.prism/work.yaml
+  prism --profile personal sync   # uses ~/.prism/personal.yaml
+  prism sync                      # uses ~/.prism/config.yaml (default)`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
@@ -34,6 +40,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgPath, "config", "c", "", "config file path (default: ~/.prism/config.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&profile, "profile", "p", "", "profile name (uses ~/.prism/<profile>.yaml)")
 
 	// Register built-in projectors
 	registerProjectors()
@@ -86,6 +93,9 @@ func registerProjectors() {
 func resolveCfgPath() string {
 	if cfgPath != "" {
 		return cfgPath
+	}
+	if profile != "" {
+		return config.ProfileConfigPath(profile)
 	}
 	return config.DefaultConfigPath()
 }

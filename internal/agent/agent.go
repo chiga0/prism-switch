@@ -54,12 +54,17 @@ func All() []Projector {
 
 // AvailableNames returns a comma-separated list of registered agent names.
 func AvailableNames() string {
+	return strings.Join(AvailableNamesList(), ", ")
+}
+
+// AvailableNamesList returns a sorted slice of registered agent names.
+func AvailableNamesList() []string {
 	names := make([]string, 0, len(registry))
 	for name := range registry {
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	return strings.Join(names, ", ")
+	return names
 }
 
 // ResetRegistry clears all registered projectors (for testing).

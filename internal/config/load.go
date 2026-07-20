@@ -21,6 +21,15 @@ func DefaultConfigPath() string {
 	return filepath.Join(home, ".prism", "config.yaml")
 }
 
+// ProfileConfigPath returns ~/.prism/<profile>.yaml for multi-profile support.
+func ProfileConfigPath(profile string) string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return filepath.Join(".prism", profile+".yaml")
+	}
+	return filepath.Join(home, ".prism", profile+".yaml")
+}
+
 // Dir returns the directory portion of a config path.
 func Dir(path string) string {
 	return filepath.Dir(path)
