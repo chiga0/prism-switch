@@ -12,13 +12,23 @@ import (
 const defaultConfigTemplate = `# prism-switch configuration
 # Define providers once, sync to all agents.
 # API keys use ${ENV_VAR} references — never plaintext.
+#
+# base_urls maps protocol → endpoint. Each agent speaks one protocol:
+#   claude, zcode       → anthropic
+#   codex, opencode, qwen-code → openai
+#   gemini              → google (usually no base_url needed)
 
 providers:
   openrouter:
     api_key: ${OPENROUTER_API_KEY}
-    base_url: https://openrouter.ai/api/v1
-  # anthropic:
-  #   api_key: ${ANTHROPIC_API_KEY}
+    base_urls:
+      openai: https://openrouter.ai/api/v1
+      anthropic: https://openrouter.ai/api/v1
+  # token-plan:
+  #   api_key: ${TOKEN_PLAN_API_KEY}
+  #   base_urls:
+  #     openai: https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+  #     anthropic: https://token-plan.cn-beijing.maas.aliyuncs.com/apps/anthropic
   # google:
   #   api_key: ${GEMINI_API_KEY}
 

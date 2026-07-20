@@ -12,6 +12,7 @@ type mockProjector struct {
 
 func (m *mockProjector) Name() string        { return m.name }
 func (m *mockProjector) DisplayName() string  { return m.name }
+func (m *mockProjector) Protocol() config.Protocol { return config.ProtocolOpenAI }
 func (m *mockProjector) ConfigPaths() []string { return nil }
 func (m *mockProjector) Project(p *config.ResolvedProvider) error { return nil }
 func (m *mockProjector) ReadLive() (*config.ResolvedProvider, error) { return nil, nil }

@@ -29,6 +29,7 @@ func NewCodexProjectorWithBase(dir string) *CodexProjector {
 
 func (c *CodexProjector) Name() string        { return "codex" }
 func (c *CodexProjector) DisplayName() string  { return "Codex CLI" }
+func (c *CodexProjector) Protocol() config.Protocol { return config.ProtocolOpenAI }
 func (c *CodexProjector) ConfigPaths() []string {
 	return []string{
 		filepath.Join(c.baseDir, "auth.json"),

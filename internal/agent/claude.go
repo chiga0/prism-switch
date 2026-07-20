@@ -28,6 +28,7 @@ func NewClaudeProjectorWithBase(dir string) *ClaudeProjector {
 
 func (c *ClaudeProjector) Name() string        { return "claude" }
 func (c *ClaudeProjector) DisplayName() string  { return "Claude Code" }
+func (c *ClaudeProjector) Protocol() config.Protocol { return config.ProtocolAnthropic }
 func (c *ClaudeProjector) ConfigPaths() []string {
 	return []string{filepath.Join(c.baseDir, "settings.json")}
 }

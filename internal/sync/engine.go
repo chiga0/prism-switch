@@ -64,11 +64,11 @@ func (e *Engine) syncOne(agentName string) error {
 	if !ok {
 		return fmt.Errorf("provider %q not found for agent %q", agentCfg.Current, agentName)
 	}
-	resolved, err := config.Resolve(agentCfg.Current, provider, agentCfg)
+	proj, err := agent.Get(agentName)
 	if err != nil {
 		return err
 	}
-	proj, err := agent.Get(agentName)
+	resolved, err := config.Resolve(agentCfg.Current, provider, agentCfg, proj.Protocol())
 	if err != nil {
 		return err
 	}
@@ -215,11 +215,11 @@ func (e *Engine) DryRun(agentNames []string) ([]DryRunEntry, error) {
 		if !ok {
 			return nil, fmt.Errorf("provider %q not found for agent %q", agentCfg.Current, name)
 		}
-		resolved, err := config.Resolve(agentCfg.Current, provider, agentCfg)
+		proj, err := agent.Get(name)
 		if err != nil {
 			return nil, err
 		}
-		proj, err := agent.Get(name)
+		resolved, err := config.Resolve(agentCfg.Current, provider, agentCfg, proj.Protocol())
 		if err != nil {
 			return nil, err
 		}

@@ -59,19 +59,19 @@ func (e *Engine) statusOne(agentName string) AgentStatus {
 		return s
 	}
 
-	resolved, err := config.Resolve(agentCfg.Current, provider, agentCfg)
-	if err != nil {
-		s.Detail = err.Error()
-		return s
-	}
-	s.APIKeyMask = MaskKey(resolved.APIKey)
-
 	proj, err := agent.Get(agentName)
 	if err != nil {
 		s.Detail = err.Error()
 		return s
 	}
 	s.ConfigPaths = proj.ConfigPaths()
+
+	resolved, err := config.Resolve(agentCfg.Current, provider, agentCfg, proj.Protocol())
+	if err != nil {
+		s.Detail = err.Error()
+		return s
+	}
+	s.APIKeyMask = MaskKey(resolved.APIKey)
 
 	live, err := proj.ReadLive()
 	if err != nil {

@@ -81,14 +81,16 @@ func ExpandEnv(s string) (string, error) {
 }
 
 // Resolve expands environment variables in a provider and combines with agent model.
-func Resolve(name string, p *Provider, agentCfg *AgentConfig) (*ResolvedProvider, error) {
+// The proto parameter selects the correct base_url for the agent's wire protocol.
+func Resolve(name string, p *Provider, agentCfg *AgentConfig, proto Protocol) (*ResolvedProvider, error) {
 	apiKey, err := ExpandEnv(p.APIKey)
 	if err != nil {
 		return nil, fmt.Errorf("provider %q: %w", name, err)
 	}
 	baseURL := ""
-	if p.BaseURL != "" {
-		baseURL, err = ExpandEnv(p.BaseURL)
+	rawURL := p.BaseURLFor(proto)
+	if rawURL != "" {
+		baseURL, err = ExpandEnv(rawURL)
 		if err != nil {
 			return nil, fmt.Errorf("provider %q: %w", name, err)
 		}

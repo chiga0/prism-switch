@@ -14,6 +14,8 @@ type Projector interface {
 	Name() string
 	// DisplayName returns the human-readable name (e.g. "Claude Code").
 	DisplayName() string
+	// Protocol returns the API wire format this agent speaks.
+	Protocol() config.Protocol
 	// ConfigPaths returns the live config file paths this agent manages.
 	ConfigPaths() []string
 	// Project writes the resolved provider to the agent's live config files.

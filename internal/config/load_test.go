@@ -189,7 +189,7 @@ func TestResolve(t *testing.T) {
 	t.Run("full resolve", func(t *testing.T) {
 		p := &Provider{APIKey: "${PRISM_RESOLVE_KEY}", BaseURL: "${PRISM_RESOLVE_URL}"}
 		ac := &AgentConfig{Current: "test", Model: "gpt-4"}
-		r, err := Resolve("test", p, ac)
+		r, err := Resolve("test", p, ac, ProtocolOpenAI)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -209,7 +209,7 @@ func TestResolve(t *testing.T) {
 
 	t.Run("no base_url", func(t *testing.T) {
 		p := &Provider{APIKey: "${PRISM_RESOLVE_KEY}"}
-		r, err := Resolve("test", p, nil)
+		r, err := Resolve("test", p, nil, ProtocolOpenAI)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -223,7 +223,7 @@ func TestResolve(t *testing.T) {
 
 	t.Run("missing env var", func(t *testing.T) {
 		p := &Provider{APIKey: "${PRISM_TOTALLY_MISSING_VAR}"}
-		_, err := Resolve("test", p, nil)
+		_, err := Resolve("test", p, nil, ProtocolOpenAI)
 		if err == nil {
 			t.Error("expected error for missing env var")
 		}
@@ -231,9 +231,41 @@ func TestResolve(t *testing.T) {
 
 	t.Run("missing base_url env var", func(t *testing.T) {
 		p := &Provider{APIKey: "${PRISM_RESOLVE_KEY}", BaseURL: "${PRISM_TOTALLY_MISSING_VAR}"}
-		_, err := Resolve("test", p, nil)
+		_, err := Resolve("test", p, nil, ProtocolOpenAI)
 		if err == nil {
 			t.Error("expected error for missing base_url env var")
+		}
+	})
+
+	t.Run("per-protocol base_urls", func(t *testing.T) {
+		p := &Provider{
+			APIKey: "${PRISM_RESOLVE_KEY}",
+			BaseURLs: map[Protocol]string{
+				ProtocolOpenAI:    "https://openai-compat.example.com/v1",
+				ProtocolAnthropic: "https://anthropic-compat.example.com/v1",
+			},
+		}
+		rOpenAI, err := Resolve("test", p, nil, ProtocolOpenAI)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if rOpenAI.BaseURL != "https://openai-compat.example.com/v1" {
+			t.Errorf("OpenAI BaseURL = %q", rOpenAI.BaseURL)
+		}
+		rAnthropic, err := Resolve("test", p, nil, ProtocolAnthropic)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if rAnthropic.BaseURL != "https://anthropic-compat.example.com/v1" {
+			t.Errorf("Anthropic BaseURL = %q", rAnthropic.BaseURL)
+		}
+		// Google protocol not in base_urls → falls back to BaseURL (empty)
+		rGoogle, err := Resolve("test", p, nil, ProtocolGoogle)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if rGoogle.BaseURL != "" {
+			t.Errorf("Google BaseURL should be empty, got %q", rGoogle.BaseURL)
 		}
 	})
 }

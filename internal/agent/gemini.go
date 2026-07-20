@@ -29,6 +29,7 @@ func NewGeminiProjectorWithBase(dir string) *GeminiProjector {
 
 func (g *GeminiProjector) Name() string        { return "gemini" }
 func (g *GeminiProjector) DisplayName() string  { return "Gemini CLI" }
+func (g *GeminiProjector) Protocol() config.Protocol { return config.ProtocolGoogle }
 func (g *GeminiProjector) ConfigPaths() []string {
 	return []string{
 		filepath.Join(g.baseDir, ".env"),

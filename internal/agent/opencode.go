@@ -28,6 +28,7 @@ func NewOpenCodeProjectorWithBase(dir string) *OpenCodeProjector {
 
 func (o *OpenCodeProjector) Name() string        { return "opencode" }
 func (o *OpenCodeProjector) DisplayName() string  { return "OpenCode" }
+func (o *OpenCodeProjector) Protocol() config.Protocol { return config.ProtocolOpenAI }
 func (o *OpenCodeProjector) ConfigPaths() []string {
 	return []string{filepath.Join(o.baseDir, "opencode.json")}
 }

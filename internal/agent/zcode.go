@@ -29,6 +29,7 @@ func NewZCodeProjectorWithBase(dir string) *ZCodeProjector {
 
 func (z *ZCodeProjector) Name() string        { return "zcode" }
 func (z *ZCodeProjector) DisplayName() string  { return "ZCode" }
+func (z *ZCodeProjector) Protocol() config.Protocol { return config.ProtocolAnthropic }
 func (z *ZCodeProjector) ConfigPaths() []string {
 	return []string{filepath.Join(z.baseDir, "config.json")}
 }

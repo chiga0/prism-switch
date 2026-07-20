@@ -29,6 +29,7 @@ func NewQwenCodeProjectorWithBase(dir string) *QwenCodeProjector {
 
 func (q *QwenCodeProjector) Name() string        { return "qwen-code" }
 func (q *QwenCodeProjector) DisplayName() string  { return "Qwen Code" }
+func (q *QwenCodeProjector) Protocol() config.Protocol { return config.ProtocolOpenAI }
 func (q *QwenCodeProjector) ConfigPaths() []string {
 	return []string{filepath.Join(q.baseDir, "settings.json")}
 }
