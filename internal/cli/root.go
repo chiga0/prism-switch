@@ -30,6 +30,11 @@ Use --profile to manage multiple provider sets:
 	SilenceErrors: true,
 }
 
+// SetVersion sets the version info displayed by --version.
+func SetVersion(version, commit, date string) {
+	rootCmd.Version = fmt.Sprintf("%s (commit: %s, built: %s)", version, commit, date)
+}
+
 // Execute runs the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
