@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/chiga0/prism-switch/internal/config"
@@ -159,5 +160,109 @@ func TestCodexRoundTrip(t *testing.T) {
 	}
 	if live.APIKey != original.APIKey || live.Model != original.Model {
 		t.Errorf("round-trip mismatch: got %+v", live)
+	}
+}
+
+func TestCodexProjectWithBaseURL(t *testing.T) {
+	dir := t.TempDir()
+	p := NewCodexProjectorWithBase(dir)
+
+	provider := &config.ResolvedProvider{
+		Name:    "custom",
+		APIKey:  "sk-custom",
+		BaseURL: "https://custom.endpoint.com/v1",
+		Model:   "gpt-4o",
+	}
+	if err := p.Project(provider); err != nil {
+		t.Fatalf("Project() error: %v", err)
+	}
+
+	live, err := p.ReadLive()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if live.BaseURL != "https://custom.endpoint.com/v1" {
+		t.Errorf("BaseURL = %q", live.BaseURL)
+	}
+	if live.Model != "gpt-4o" {
+		t.Errorf("Model = %q", live.Model)
+	}
+}
+
+func TestCodexProjectRemovesBaseURL(t *testing.T) {
+	dir := t.TempDir()
+	p := NewCodexProjectorWithBase(dir)
+
+	// First project with BaseURL
+	p.Project(&config.ResolvedProvider{Name: "a", APIKey: "k1", BaseURL: "https://x.com", Model: "m1"})
+	// Then project without BaseURL
+	p.Project(&config.ResolvedProvider{Name: "b", APIKey: "k2", Model: "m2"})
+
+	live, err := p.ReadLive()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if live.BaseURL != "" {
+		t.Errorf("BaseURL should be empty after removal, got %q", live.BaseURL)
+	}
+}
+
+func TestCodexProjectCorruptToml(t *testing.T) {
+	dir := t.TempDir()
+	p := NewCodexProjectorWithBase(dir)
+
+	// Write corrupt TOML
+	os.WriteFile(filepath.Join(dir, "config.toml"), []byte("{{{invalid toml"), 0o644)
+
+	provider := &config.ResolvedProvider{Name: "t", APIKey: "sk-k", Model: "o3"}
+	if err := p.Project(provider); err != nil {
+		t.Fatalf("Project() should succeed despite corrupt TOML: %v", err)
+	}
+
+	// Verify backup was created
+	entries, _ := os.ReadDir(dir)
+	backupFound := false
+	for _, e := range entries {
+		if strings.Contains(e.Name(), ".prism-backup-") {
+			backupFound = true
+		}
+	}
+	if !backupFound {
+		t.Error("backup should be created for corrupt TOML")
+	}
+
+	// Verify new config is valid
+	live, err := p.ReadLive()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if live.Model != "o3" {
+		t.Errorf("Model = %q", live.Model)
+	}
+}
+
+func TestCodexReadLiveWithBaseURL(t *testing.T) {
+	dir := t.TempDir()
+	p := NewCodexProjectorWithBase(dir)
+
+	os.WriteFile(filepath.Join(dir, "auth.json"), []byte(`{"OPENAI_API_KEY":"sk-live"}`), 0o644)
+	os.WriteFile(filepath.Join(dir, "config.toml"), []byte("model = \"o4-mini\"\napi_base_url = \"https://proxy.example.com\"\n"), 0o644)
+
+	live, err := p.ReadLive()
+	if err != nil {
+		t.Fatalf("ReadLive() error: %v", err)
+	}
+	if live.BaseURL != "https://proxy.example.com" {
+		t.Errorf("BaseURL = %q", live.BaseURL)
+	}
+}
+
+func TestNewCodexProjectorDefault(t *testing.T) {
+	p, err := NewCodexProjector()
+	if err != nil {
+		t.Fatalf("NewCodexProjector() error: %v", err)
+	}
+	if p.Name() != "codex" {
+		t.Errorf("Name() = %q", p.Name())
 	}
 }

@@ -177,3 +177,65 @@ func TestResolveCfgPathCustom(t *testing.T) {
 		t.Errorf("resolveCfgPath() = %q", resolveCfgPath())
 	}
 }
+
+func TestInitCommand(t *testing.T) {
+	dir := t.TempDir()
+	initPath := filepath.Join(dir, "sub", "config.yaml")
+
+	rootCmd.SetArgs([]string{"init", "--config", initPath})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("init command error: %v", err)
+	}
+
+	// Verify file was created
+	if _, err := os.Stat(initPath); err != nil {
+		t.Fatal("config file should exist after init")
+	}
+
+	// Verify it's valid YAML
+	cfg, err := config.Load(initPath)
+	if err != nil {
+		t.Fatalf("init created invalid config: %v", err)
+	}
+	if len(cfg.Providers) == 0 {
+		t.Error("init config should have providers")
+	}
+	if len(cfg.Agents) == 0 {
+		t.Error("init config should have agents")
+	}
+}
+
+func TestInitCommandNoOverwrite(t *testing.T) {
+	dir := t.TempDir()
+	initPath := filepath.Join(dir, "config.yaml")
+	os.WriteFile(initPath, []byte("existing: true"), 0o600)
+
+	rootCmd.SetArgs([]string{"init", "--config", initPath})
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Error("init should fail when config already exists")
+	}
+}
+
+func TestSyncDryRunCommand(t *testing.T) {
+	t.Setenv("PRISM_CLI_TEST_KEY", "sk-cli-dry")
+	t.Setenv("PRISM_CLI_TEST_KEY2", "sk-cli-dry2")
+
+	cfgPath := setupCLITest(t)
+
+	rootCmd.SetArgs([]string{"sync", "--dry-run", "--config", cfgPath})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("sync --dry-run error: %v", err)
+	}
+}
+
+func TestSyncDryRunMissingEnv(t *testing.T) {
+	cfgPath := setupCLITest(t)
+	// PRISM_CLI_TEST_KEY not set in this test
+
+	rootCmd.SetArgs([]string{"sync", "--dry-run", "--config", cfgPath})
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Error("expected error for missing env var in dry-run")
+	}
+}

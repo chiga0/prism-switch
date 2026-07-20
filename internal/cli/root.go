@@ -36,9 +36,30 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgPath, "config", "c", "", "config file path (default: ~/.prism/config.yaml)")
 
 	// Register built-in projectors
-	agent.Register(agent.NewClaudeProjector())
-	agent.Register(agent.NewCodexProjector())
-	agent.Register(agent.NewGeminiProjector())
+	registerProjectors()
+}
+
+func registerProjectors() {
+	claude, err := agent.NewClaudeProjector()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: %v\n", err)
+	} else {
+		agent.Register(claude)
+	}
+
+	codex, err := agent.NewCodexProjector()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: %v\n", err)
+	} else {
+		agent.Register(codex)
+	}
+
+	gemini, err := agent.NewGeminiProjector()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: %v\n", err)
+	} else {
+		agent.Register(gemini)
+	}
 }
 
 func resolveCfgPath() string {

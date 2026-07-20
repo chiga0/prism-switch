@@ -5,7 +5,34 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
+
+// backupFile creates a timestamped backup of a file before overwriting.
+func backupFile(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil // file doesn't exist, nothing to back up
+	}
+	backupPath := fmt.Sprintf("%s.prism-backup-%s", path, time.Now().Format("20060102-150405"))
+	return os.WriteFile(backupPath, data, 0o644)
+}
+
+// readJSONOrWarn reads a JSON file into a map. If the file exists but is corrupt,
+// it prints a warning to stderr and returns an empty map.
+func readJSONOrWarn(path string) map[string]interface{} {
+	result := make(map[string]interface{})
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return result
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: %s is corrupt (%v), backing up and overwriting\n", path, err)
+		_ = backupFile(path)
+		return make(map[string]interface{})
+	}
+	return result
+}
 
 func atomicWriteJSON(path string, v interface{}) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

@@ -323,3 +323,113 @@ func TestConfigAccessor(t *testing.T) {
 		t.Error("Config() should return the same config pointer")
 	}
 }
+
+func TestSwitchRollbackOnSyncFailure(t *testing.T) {
+	// PRISM_TEST_ANT_KEY is NOT set, so switching to anthropic will fail at Resolve
+	cfgPath, _ := setupTestEnv(t)
+	cfg := testConfig()
+	config.Save(cfgPath, cfg)
+
+	engine := NewEngineWithConfig(cfg, cfgPath)
+	err := engine.Switch("claude", "anthropic")
+	if err == nil {
+		t.Fatal("expected error when env var is missing")
+	}
+
+	// YAML should NOT have been updated — current should still be openrouter
+	reloaded, _ := config.Load(cfgPath)
+	if reloaded.Agents["claude"].Current != "openrouter" {
+		t.Errorf("claude current = %q, want openrouter (rollback failed)", reloaded.Agents["claude"].Current)
+	}
+}
+
+func TestSwitchAllRollbackOnSyncFailure(t *testing.T) {
+	cfgPath, _ := setupTestEnv(t)
+	cfg := testConfig()
+	config.Save(cfgPath, cfg)
+
+	engine := NewEngineWithConfig(cfg, cfgPath)
+	// anthropic env var not set → sync will fail
+	err := engine.SwitchAll("anthropic")
+	if err == nil {
+		t.Fatal("expected error when env var is missing")
+	}
+
+	reloaded, _ := config.Load(cfgPath)
+	if reloaded.Agents["claude"].Current != "openrouter" {
+		t.Errorf("claude current = %q, want openrouter (rollback failed)", reloaded.Agents["claude"].Current)
+	}
+	if reloaded.Agents["codex"].Current != "openrouter" {
+		t.Errorf("codex current = %q, want openrouter (rollback failed)", reloaded.Agents["codex"].Current)
+	}
+}
+
+func TestDryRun(t *testing.T) {
+	t.Setenv("PRISM_TEST_OR_KEY", "sk-or-dryrun")
+
+	cfgPath, _ := setupTestEnv(t)
+	cfg := testConfig()
+	config.Save(cfgPath, cfg)
+
+	engine := NewEngineWithConfig(cfg, cfgPath)
+	entries, err := engine.DryRun(nil)
+	if err != nil {
+		t.Fatalf("DryRun() error: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(entries))
+	}
+
+	// Verify no files were written
+	for _, e := range entries {
+		for _, p := range e.ConfigPaths {
+			if _, err := os.Stat(p); err == nil {
+				t.Errorf("DryRun should not create files, but %s exists", p)
+			}
+		}
+	}
+
+	// Verify content
+	found := false
+	for _, e := range entries {
+		if e.Agent == "claude" {
+			found = true
+			if e.Provider != "openrouter" {
+				t.Errorf("claude provider = %q", e.Provider)
+			}
+			if e.APIKeyMask != "sk-o***yrun" {
+				t.Errorf("claude mask = %q", e.APIKeyMask)
+			}
+			if len(e.ConfigPaths) == 0 {
+				t.Error("claude should have config paths")
+			}
+		}
+	}
+	if !found {
+		t.Error("claude not found in dry run entries")
+	}
+}
+
+func TestDryRunUnknownAgent(t *testing.T) {
+	cfgPath, _ := setupTestEnv(t)
+	cfg := testConfig()
+	config.Save(cfgPath, cfg)
+
+	engine := NewEngineWithConfig(cfg, cfgPath)
+	_, err := engine.DryRun([]string{"nonexistent"})
+	if err == nil {
+		t.Error("expected error for unknown agent")
+	}
+}
+
+func TestDryRunMissingEnvVar(t *testing.T) {
+	cfgPath, _ := setupTestEnv(t)
+	cfg := testConfig()
+	config.Save(cfgPath, cfg)
+
+	engine := NewEngineWithConfig(cfg, cfgPath)
+	_, err := engine.DryRun(nil)
+	if err == nil {
+		t.Error("expected error for missing env var")
+	}
+}

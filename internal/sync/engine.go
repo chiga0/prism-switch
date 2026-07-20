@@ -75,7 +75,8 @@ func (e *Engine) syncOne(agentName string) error {
 	return proj.Project(resolved)
 }
 
-// Switch changes one agent's current provider, saves config, and syncs.
+// Switch changes one agent's current provider, projects to live config, then saves YAML.
+// Projection happens before save so a failed sync leaves the YAML unchanged.
 func (e *Engine) Switch(agentName, providerName string) error {
 	agentCfg, ok := e.cfg.Agents[agentName]
 	if !ok {
@@ -84,25 +85,45 @@ func (e *Engine) Switch(agentName, providerName string) error {
 	if _, ok := e.cfg.Providers[providerName]; !ok {
 		return fmt.Errorf("provider %q not found in config", providerName)
 	}
+
+	prev := agentCfg.Current
 	agentCfg.Current = providerName
+	if err := e.syncOne(agentName); err != nil {
+		agentCfg.Current = prev
+		return err
+	}
 	if err := config.Save(e.cfgPath, e.cfg); err != nil {
+		agentCfg.Current = prev
 		return fmt.Errorf("save config: %w", err)
 	}
-	return e.syncOne(agentName)
+	return nil
 }
 
-// SwitchAll changes all agents' current provider, saves config, and syncs.
+// SwitchAll changes all agents' current provider, projects all, then saves YAML.
 func (e *Engine) SwitchAll(providerName string) error {
 	if _, ok := e.cfg.Providers[providerName]; !ok {
 		return fmt.Errorf("provider %q not found in config", providerName)
 	}
-	for _, agentCfg := range e.cfg.Agents {
+
+	prev := make(map[string]string, len(e.cfg.Agents))
+	for name, agentCfg := range e.cfg.Agents {
+		prev[name] = agentCfg.Current
 		agentCfg.Current = providerName
 	}
+
+	if err := e.Sync(nil); err != nil {
+		for name, agentCfg := range e.cfg.Agents {
+			agentCfg.Current = prev[name]
+		}
+		return err
+	}
 	if err := config.Save(e.cfgPath, e.cfg); err != nil {
+		for name, agentCfg := range e.cfg.Agents {
+			agentCfg.Current = prev[name]
+		}
 		return fmt.Errorf("save config: %w", err)
 	}
-	return e.Sync(nil)
+	return nil
 }
 
 // Import reads live configs and creates provider entries with env-var placeholders.
@@ -167,4 +188,49 @@ func (e *Engine) agentNames() []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// DryRunEntry describes what a sync would write for one agent.
+type DryRunEntry struct {
+	Agent       string
+	Provider    string
+	Model       string
+	APIKeyMask  string
+	BaseURL     string
+	ConfigPaths []string
+}
+
+// DryRun resolves providers and returns what would be written without touching any files.
+func (e *Engine) DryRun(agentNames []string) ([]DryRunEntry, error) {
+	if len(agentNames) == 0 {
+		agentNames = e.agentNames()
+	}
+	var entries []DryRunEntry
+	for _, name := range agentNames {
+		agentCfg, ok := e.cfg.Agents[name]
+		if !ok {
+			return nil, fmt.Errorf("agent %q not found in config", name)
+		}
+		provider, ok := e.cfg.Providers[agentCfg.Current]
+		if !ok {
+			return nil, fmt.Errorf("provider %q not found for agent %q", agentCfg.Current, name)
+		}
+		resolved, err := config.Resolve(agentCfg.Current, provider, agentCfg)
+		if err != nil {
+			return nil, err
+		}
+		proj, err := agent.Get(name)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, DryRunEntry{
+			Agent:       name,
+			Provider:    agentCfg.Current,
+			Model:       resolved.Model,
+			APIKeyMask:  MaskKey(resolved.APIKey),
+			BaseURL:     resolved.BaseURL,
+			ConfigPaths: proj.ConfigPaths(),
+		})
+	}
+	return entries, nil
 }

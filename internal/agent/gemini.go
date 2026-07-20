@@ -15,9 +15,12 @@ type GeminiProjector struct {
 	baseDir string
 }
 
-func NewGeminiProjector() *GeminiProjector {
-	home, _ := os.UserHomeDir()
-	return &GeminiProjector{baseDir: filepath.Join(home, ".gemini")}
+func NewGeminiProjector() (*GeminiProjector, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("resolve home dir for gemini: %w", err)
+	}
+	return &GeminiProjector{baseDir: filepath.Join(home, ".gemini")}, nil
 }
 
 func NewGeminiProjectorWithBase(dir string) *GeminiProjector {
@@ -46,10 +49,7 @@ func (g *GeminiProjector) Project(p *config.ResolvedProvider) error {
 	}
 
 	settingsPath := filepath.Join(g.baseDir, "settings.json")
-	settings := make(map[string]interface{})
-	if data, err := os.ReadFile(settingsPath); err == nil {
-		_ = json.Unmarshal(data, &settings)
-	}
+	settings := readJSONOrWarn(settingsPath)
 	if p.Model != "" {
 		settings["model"] = p.Model
 	}

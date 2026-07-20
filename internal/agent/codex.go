@@ -15,9 +15,12 @@ type CodexProjector struct {
 	baseDir string
 }
 
-func NewCodexProjector() *CodexProjector {
-	home, _ := os.UserHomeDir()
-	return &CodexProjector{baseDir: filepath.Join(home, ".codex")}
+func NewCodexProjector() (*CodexProjector, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("resolve home dir for codex: %w", err)
+	}
+	return &CodexProjector{baseDir: filepath.Join(home, ".codex")}, nil
 }
 
 func NewCodexProjectorWithBase(dir string) *CodexProjector {
@@ -43,10 +46,19 @@ func (c *CodexProjector) Project(p *config.ResolvedProvider) error {
 	tomlPath := filepath.Join(c.baseDir, "config.toml")
 	tomlData := make(map[string]interface{})
 	if data, err := os.ReadFile(tomlPath); err == nil {
-		_ = toml.Unmarshal(data, &tomlData)
+		if err := toml.Unmarshal(data, &tomlData); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: %s is corrupt (%v), backing up and overwriting\n", tomlPath, err)
+			_ = backupFile(tomlPath)
+			tomlData = make(map[string]interface{})
+		}
 	}
 	if p.Model != "" {
 		tomlData["model"] = p.Model
+	}
+	if p.BaseURL != "" {
+		tomlData["api_base_url"] = p.BaseURL
+	} else {
+		delete(tomlData, "api_base_url")
 	}
 	out, err := toml.Marshal(tomlData)
 	if err != nil {
@@ -76,6 +88,9 @@ func (c *CodexProjector) ReadLive() (*config.ResolvedProvider, error) {
 		if toml.Unmarshal(tomlData, &parsed) == nil {
 			if m, ok := parsed["model"].(string); ok {
 				p.Model = m
+			}
+			if u, ok := parsed["api_base_url"].(string); ok {
+				p.BaseURL = u
 			}
 		}
 	}

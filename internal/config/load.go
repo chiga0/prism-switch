@@ -21,6 +21,11 @@ func DefaultConfigPath() string {
 	return filepath.Join(home, ".prism", "config.yaml")
 }
 
+// Dir returns the directory portion of a config path.
+func Dir(path string) string {
+	return filepath.Dir(path)
+}
+
 // Load reads and parses the YAML config file.
 // Environment variable references (${VAR}) are NOT expanded at load time.
 func Load(path string) (*Config, error) {

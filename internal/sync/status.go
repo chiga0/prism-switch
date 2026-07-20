@@ -9,12 +9,13 @@ import (
 
 // AgentStatus reports the state of one agent's live config vs desired config.
 type AgentStatus struct {
-	Agent      string
-	Provider   string
-	Model      string
-	APIKeyMask string
-	State      string // synced, drifted, missing, error
-	Detail     string
+	Agent       string
+	Provider    string
+	Model       string
+	APIKeyMask  string
+	State       string // synced, drifted, missing, error
+	Detail      string
+	ConfigPaths []string
 }
 
 // MaskKey masks an API key for safe display: "sk-or-v1-abc...xyz" → "sk-o...xyz".
@@ -70,6 +71,7 @@ func (e *Engine) statusOne(agentName string) AgentStatus {
 		s.Detail = err.Error()
 		return s
 	}
+	s.ConfigPaths = proj.ConfigPaths()
 
 	live, err := proj.ReadLive()
 	if err != nil {

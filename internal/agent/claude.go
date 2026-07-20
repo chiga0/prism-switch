@@ -14,9 +14,12 @@ type ClaudeProjector struct {
 	baseDir string
 }
 
-func NewClaudeProjector() *ClaudeProjector {
-	home, _ := os.UserHomeDir()
-	return &ClaudeProjector{baseDir: filepath.Join(home, ".claude")}
+func NewClaudeProjector() (*ClaudeProjector, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("resolve home dir for claude: %w", err)
+	}
+	return &ClaudeProjector{baseDir: filepath.Join(home, ".claude")}, nil
 }
 
 func NewClaudeProjectorWithBase(dir string) *ClaudeProjector {
@@ -33,10 +36,7 @@ func (c *ClaudeProjector) ConfigPaths() []string {
 func (c *ClaudeProjector) Project(p *config.ResolvedProvider) error {
 	settingsPath := filepath.Join(c.baseDir, "settings.json")
 
-	settings := make(map[string]interface{})
-	if data, err := os.ReadFile(settingsPath); err == nil {
-		_ = json.Unmarshal(data, &settings)
-	}
+	settings := readJSONOrWarn(settingsPath)
 
 	env, _ := settings["env"].(map[string]interface{})
 	if env == nil {

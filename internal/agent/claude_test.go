@@ -202,3 +202,47 @@ func TestClaudeRoundTrip(t *testing.T) {
 		t.Errorf("round-trip mismatch: got %+v, want %+v", live, original)
 	}
 }
+
+func TestNewClaudeProjectorDefault(t *testing.T) {
+	p, err := NewClaudeProjector()
+	if err != nil {
+		t.Fatalf("NewClaudeProjector() error: %v", err)
+	}
+	if p.Name() != "claude" {
+		t.Errorf("Name() = %q", p.Name())
+	}
+}
+
+func TestClaudeProjectCorruptJSON(t *testing.T) {
+	dir := t.TempDir()
+	p := NewClaudeProjectorWithBase(dir)
+
+	// Write corrupt JSON
+	os.WriteFile(filepath.Join(dir, "settings.json"), []byte(`{invalid`), 0o644)
+
+	provider := &config.ResolvedProvider{Name: "t", APIKey: "sk-k", Model: "m"}
+	if err := p.Project(provider); err != nil {
+		t.Fatalf("Project() should succeed despite corrupt JSON: %v", err)
+	}
+
+	// Verify backup was created
+	entries, _ := os.ReadDir(dir)
+	backupFound := false
+	for _, e := range entries {
+		if len(e.Name()) > len("settings.json") && e.Name()[:13] == "settings.json" {
+			backupFound = true
+		}
+	}
+	if !backupFound {
+		t.Error("backup should be created for corrupt JSON")
+	}
+
+	// Verify new config is valid
+	live, err := p.ReadLive()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if live.APIKey != "sk-k" {
+		t.Errorf("APIKey = %q", live.APIKey)
+	}
+}

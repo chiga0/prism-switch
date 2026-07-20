@@ -188,3 +188,39 @@ func TestGeminiRoundTrip(t *testing.T) {
 		t.Errorf("round-trip mismatch: got %+v", live)
 	}
 }
+
+func TestNewGeminiProjectorDefault(t *testing.T) {
+	p, err := NewGeminiProjector()
+	if err != nil {
+		t.Fatalf("NewGeminiProjector() error: %v", err)
+	}
+	if p.Name() != "gemini" {
+		t.Errorf("Name() = %q", p.Name())
+	}
+}
+
+func TestGeminiProjectCorruptJSON(t *testing.T) {
+	dir := t.TempDir()
+	p := NewGeminiProjectorWithBase(dir)
+
+	// Write valid .env but corrupt settings.json
+	os.WriteFile(filepath.Join(dir, ".env"), []byte("GEMINI_API_KEY=AIza-old\n"), 0o600)
+	os.WriteFile(filepath.Join(dir, "settings.json"), []byte(`{bad json`), 0o644)
+
+	provider := &config.ResolvedProvider{Name: "t", APIKey: "AIza-new", Model: "gemini-2.5-pro"}
+	if err := p.Project(provider); err != nil {
+		t.Fatalf("Project() should succeed despite corrupt settings.json: %v", err)
+	}
+
+	// Verify new config is valid
+	live, err := p.ReadLive()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if live.APIKey != "AIza-new" {
+		t.Errorf("APIKey = %q", live.APIKey)
+	}
+	if live.Model != "gemini-2.5-pro" {
+		t.Errorf("Model = %q", live.Model)
+	}
+}
