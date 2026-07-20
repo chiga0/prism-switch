@@ -74,6 +74,13 @@ func registerProjectors() {
 	} else {
 		agent.Register(qwencode)
 	}
+
+	zcode, err := agent.NewZCodeProjector()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: %v\n", err)
+	} else {
+		agent.Register(zcode)
+	}
 }
 
 func resolveCfgPath() string {

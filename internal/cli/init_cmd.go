@@ -38,6 +38,9 @@ agents:
   qwen-code:
     current: openrouter
     model: qwen3-coder
+  zcode:
+    current: openrouter
+    model: GLM-5.2
 `
 
 var initCmd = &cobra.Command{
