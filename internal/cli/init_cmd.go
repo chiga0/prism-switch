@@ -32,6 +32,12 @@ agents:
   gemini:
     current: openrouter
     model: gemini-2.5-pro
+  opencode:
+    current: openrouter
+    model: anthropic/claude-sonnet-4
+  qwen-code:
+    current: openrouter
+    model: qwen3-coder
 `
 
 var initCmd = &cobra.Command{

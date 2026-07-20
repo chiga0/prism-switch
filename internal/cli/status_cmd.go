@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -10,6 +11,8 @@ import (
 
 	psync "github.com/chiga0/prism-switch/internal/sync"
 )
+
+var statusJSON bool
 
 var statusCmd = &cobra.Command{
 	Use:   "status [agent...]",
@@ -22,6 +25,12 @@ var statusCmd = &cobra.Command{
 		statuses, err := engine.Status(args)
 		if err != nil {
 			return err
+		}
+
+		if statusJSON {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(statuses)
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
@@ -47,5 +56,6 @@ var statusCmd = &cobra.Command{
 }
 
 func init() {
+	statusCmd.Flags().BoolVar(&statusJSON, "json", false, "output status as JSON")
 	rootCmd.AddCommand(statusCmd)
 }

@@ -60,6 +60,20 @@ func registerProjectors() {
 	} else {
 		agent.Register(gemini)
 	}
+
+	opencode, err := agent.NewOpenCodeProjector()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: %v\n", err)
+	} else {
+		agent.Register(opencode)
+	}
+
+	qwencode, err := agent.NewQwenCodeProjector()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: %v\n", err)
+	} else {
+		agent.Register(qwencode)
+	}
 }
 
 func resolveCfgPath() string {

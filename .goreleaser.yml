@@ -1,0 +1,49 @@
+version: 2
+
+project_name: prism-switch
+
+builds:
+  - id: prism
+    main: ./cmd/prism
+    binary: prism
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+brews:
+  - name: prism
+    repository:
+      owner: chiga0
+      name: homebrew-tap
+    homepage: "https://github.com/chiga0/prism-switch"
+    description: "One provider config, every AI agent — sync API providers across Claude Code, Codex, Gemini CLI and more"
+    license: MIT
+    install: |
+      bin.install "prism"
