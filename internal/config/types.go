@@ -1,5 +1,7 @@
 package config
 
+import "sort"
+
 // Protocol identifies the API wire format an agent speaks.
 type Protocol string
 
@@ -13,6 +15,16 @@ const (
 type Config struct {
 	Providers map[string]*Provider    `yaml:"providers"`
 	Agents    map[string]*AgentConfig `yaml:"agents"`
+}
+
+// AgentNames returns a sorted list of agent names in the config.
+func (c *Config) AgentNames() []string {
+	names := make([]string, 0, len(c.Agents))
+	for name := range c.Agents {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // Provider defines a shared API provider. Credentials use ${ENV_VAR} references.
